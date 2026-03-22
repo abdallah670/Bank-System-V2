@@ -14,6 +14,11 @@ public class BankDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<LoginAttempt> LoginAttempts => Set<LoginAttempt>();
+    public DbSet<TwoFactorAuth> TwoFactorAuths => Set<TwoFactorAuth>();
+    public DbSet<TwoFactorToken> TwoFactorTokens => Set<TwoFactorToken>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
+    public DbSet<Session> Sessions => Set<Session>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -124,6 +129,69 @@ public class BankDbContext : DbContext
             entity.Property(e => e.Username).HasMaxLength(50).IsRequired();
             entity.Property(e => e.IPAddress).HasMaxLength(50).IsRequired();
             entity.Property(e => e.FailureReason).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<TwoFactorAuth>(entity =>
+        {
+            entity.ToTable("TwoFactorAuths");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.SecretKey).HasMaxLength(255).IsRequired();
+            entity.HasOne(e => e.User)
+                .WithOne(u => u.TwoFactorAuth)
+                .HasForeignKey<TwoFactorAuth>(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TwoFactorToken>(entity =>
+        {
+            entity.ToTable("TwoFactorTokens");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Token).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.Code).HasMaxLength(10).IsRequired();
+            entity.Property(e => e.Type).HasConversion<string>().HasMaxLength(20);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.ToTable("Notifications");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Message).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.Type).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.IsRead).HasDefaultValue(false);
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.Notifications)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PasswordHistory>(entity =>
+        {
+            entity.ToTable("PasswordHistories");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.PasswordHash).HasMaxLength(255).IsRequired();
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.PasswordHistories)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Session>(entity =>
+        {
+            entity.ToTable("Sessions");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.SessionId).HasMaxLength(255).IsRequired();
+            entity.HasIndex(e => e.SessionId).IsUnique();
+            entity.Property(e => e.IPAddress).HasMaxLength(50);
+            entity.Property(e => e.UserAgent).HasMaxLength(255);
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.Sessions)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

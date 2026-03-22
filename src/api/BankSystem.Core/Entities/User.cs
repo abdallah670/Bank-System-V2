@@ -18,6 +18,10 @@ public class User
     public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
     public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+    public virtual ICollection<PasswordHistory> PasswordHistories { get; set; } = new List<PasswordHistory>();
+    public virtual ICollection<Session> Sessions { get; set; } = new List<Session>();
+    public virtual TwoFactorAuth? TwoFactorAuth { get; set; }
 }
 
 public enum UserRole
