@@ -1,0 +1,57 @@
+# BankSystem V2 - Docker Configuration
+
+version: '3.8'
+
+services:
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: banksystem-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourStrong@Passw0rd -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # BankSystem API
+  api:
+    build:
+      context: ./src/api
+      dockerfile: BankSystem.Api/Dockerfile
+    container_name: banksystem-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:7000
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=BankSystemV2;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True
+      - Jwt__Secret=YourSuperSecretKeyThatIsAtLeast32CharactersLong!
+      - Jwt__Issuer=BankSystem
+      - Jwt__Audience=BankSystemAdmin
+    ports:
+      - "7000:7000"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # BankSystem Web (Angular)
+  web:
+    build:
+      context: ./src/web/bank-admin
+      dockerfile: Dockerfile
+    container_name: banksystem-web
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+
+volumes:
+  sqlserver_data:

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -6,7 +6,9 @@ import { MatListModule } from '@angular/material/list';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
+import { MatBadgeModule } from '@angular/material/badge';
 import { AuthService } from '../../core/services/auth.service';
+import { NotificationService } from '../../core/services/notification.service';
 
 @Component({
   selector: 'app-layout',
@@ -20,7 +22,8 @@ import { AuthService } from '../../core/services/auth.service';
     MatListModule,
     MatToolbarModule,
     MatMenuModule,
-    MatButtonModule
+    MatButtonModule,
+    MatBadgeModule
   ],
   template: `
     <mat-sidenav-container class="container">
@@ -56,6 +59,12 @@ import { AuthService } from '../../core/services/auth.service';
       <mat-sidenav-content>
         <mat-toolbar color="primary" class="header">
           <span class="spacer"></span>
+          <button mat-icon-button routerLink="/settings" matBadge="{{unreadCount()}}" matBadgeColor="warn" [matBadgeHidden]="unreadCount() === 0">
+            <mat-icon>notifications</mat-icon>
+          </button>
+          <button mat-icon-button routerLink="/settings">
+            <mat-icon>settings</mat-icon>
+          </button>
           <button mat-button [matMenuTriggerFor]="menu">
             <mat-icon>account_circle</mat-icon>
             {{user?.firstName}} {{user?.lastName}}
@@ -64,6 +73,10 @@ import { AuthService } from '../../core/services/auth.service';
             <button mat-menu-item disabled>
               <mat-icon>badge</mat-icon>
               <span>{{user?.role}}</span>
+            </button>
+            <button mat-menu-item routerLink="/settings">
+              <mat-icon>settings</mat-icon>
+              <span>Settings</span>
             </button>
             <button mat-menu-item (click)="logout()">
               <mat-icon>logout</mat-icon>
@@ -102,9 +115,16 @@ import { AuthService } from '../../core/services/auth.service';
     }
   `]
 })
-export class LayoutComponent {
-  constructor(private authService: AuthService) {}
+export class LayoutComponent implements OnInit {
+  constructor(
+    private authService: AuthService,
+    private notificationService: NotificationService
+  ) {}
   
+  ngOnInit(): void {
+    this.notificationService.startPolling();
+  }
+
   get user() {
     return this.authService.currentUser();
   }
@@ -112,8 +132,13 @@ export class LayoutComponent {
   get isSuperAdmin() {
     return this.authService.hasRole(['SuperAdmin']);
   }
+
+  get unreadCount() {
+    return this.notificationService.unreadCount;
+  }
   
   logout() {
+    this.notificationService.stopPolling();
     this.authService.logout();
   }
 }
